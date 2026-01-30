@@ -9,15 +9,22 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "next": "16.0.8",
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.23.26",
+    "mysql2": "^3.15.3",
+    "next": "^16.0.10",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "react-tabulator": "^0.21.0",
+    "tabulator-tables": "^6.3.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/tabulator-tables": "^6.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.0.8",
     "tailwindcss": "^4",
