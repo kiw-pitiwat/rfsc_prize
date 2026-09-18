@@ -72,7 +72,7 @@ export default function Page() {
 
     const columns = useMemo<ColumnDefinition[]>(() => {
         return [
-            { title: "No.", field: "row_num", sorter: "string", width: '10%' },
+            { title: "No.", field: "row_num", sorter: "integer", width: '10%' },
             { title: "เลขสมาชิก", field: "MEMBER_NO", sorter: "string", width: '20%' },
             { title: "ชื่อ-สกุล", field: "MEMBER_NAME", sorter: "string", width: '30%' },
             { title: "ของรางวัล", field: "PRIZE_NAME", sorter: "string", width: '20%' },

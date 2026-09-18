@@ -138,7 +138,7 @@ export default function Page() {
             setIsSpinning(false);
             setReels([]);
             setWinners([]);
-        }  catch (err: unknown) {
+        } catch (err: unknown) {
             console.error(err);
             const msg = err instanceof Error ? err.message : typeof err === "string" ? err : "เกิดข้อผิดพลาด";
             alert(`บันทึกไม่สำเร็จ ❌\n${msg || "เกิดข้อผิดพลาด"}`);
@@ -246,8 +246,8 @@ export default function Page() {
                     GROUP_NAME: (u.GROUP_NAME ?? '').toString(),
                     DEPARTMENT: (u.DEPARTMENT ?? '').toString(),
                     AFFILIATION: (u.AFFILIATION ?? '').toString(),
-                    prize_id:null,
-                    prize_name:null,
+                    prize_id: null,
+                    prize_name: null,
                 });
             }
 
@@ -321,11 +321,12 @@ export default function Page() {
                         <div className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 text-s text-slate-900 shadow-sm">
                             สุ่มต่อรอบ
                             <input
-                                type="number"
-                                min={1}
-                                max={50}
+                                type="text"
                                 value={drawCount}
-                                onChange={(e) => setDrawCount(Number(e.target.value))}
+                                onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "").trim();
+                                    setDrawCount(value == "" ? drawCount : Number(value));
+                                }}
                                 className="rounded-2xl border border-slate-200 bg-white px-1 ml-0.5 text-base text-slate-900 outline-none focus:border-slate-400"
                             />
                         </div>
@@ -385,114 +386,498 @@ export default function Page() {
                         <div className="w-full max-w-6xl">
                             {/* ✅ Grid: บังคับไม่เกิน 5 กล่อง/แถว */}
                             <div
-                                className="grid gap-4"
-                                style={{ gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))` }}
+                                className="grid gap-5"
+                                style={{
+                                    gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`
+                                }}
                             >
                                 {reels.map((item, i) => {
                                     const { first, last } = splitThaiFullName(item.MEMBER_NAME);
+
                                     return (
                                         <motion.div
                                             key={`slot-${i}-${item.MEMBER_NO}`}
-                                            initial={{ opacity: 0, y: 18, scale: 0.98 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            transition={{ type: 'spring', stiffness: 240, damping: 18 }}
-                                            className="relative overflow-hidden rounded-3xl border border-slate-200 bg-green-coop p-2 shadow-lg"
+
+                                            initial={{
+                                                opacity: 0,
+                                                y: 20,
+                                                scale: 0.96
+                                            }}
+
+                                            animate={{
+                                                opacity: 1,
+                                                y: 0,
+                                                scale: 1
+                                            }}
+
+                                            transition={{
+                                                type: "spring",
+                                                stiffness: 220,
+                                                damping: 20
+                                            }}
+
+                                            className={`
+                    relative
+                    overflow-hidden
+                    rounded-[30px]
+                    border
+                    p-3
+
+                    transition-all
+                    duration-300
+
+                    ${isSpinning
+                                                    ? `
+                                border-sky-300
+                                bg-[#EDF8FF]
+                                shadow-[0_0_0_3px_rgba(56,189,248,0.15),0_18px_45px_rgba(14,165,233,0.25)]
+                            `
+                                                    : `
+                                border-white/80
+                                bg-[#F8FBFC]
+                                shadow-[0_12px_35px_rgba(0,50,80,0.14)]
+                            `
+                                                }
+                `}
                                         >
-                                            <div className="absolute inset-0 bg-gradient-to-b from-sky-50 to-white opacity-70" />
-                                            <div className="relative">
-                                                {/* <div className="text-m text-center font-bold text-slate-800">ลำดับ {i + 1} </div> */}
-                                                <div className="relative flex items-center justify-center">
 
-                                                    {/* ข้อความอยู่กลางจริง */}
-                                                    <div className="text-m text-center font-bold text-slate-800">
-                                                        ลำดับ {i + 1}
-                                                    </div>
-                                                    {/* ปุ่ม X ซ้ายสุด */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setReels(prev =>
-                                                                prev.filter(v => v.MEMBER_NO != item.MEMBER_NO)
-                                                            );
-                                                        }}
-                                                        className="absolute right-0 top-1/2 -translate-y-1/2
-                                                    rounded-full p-1 
-                                                    hover:bg-gray-300 hover:text-slate-800 text-black"
-                                                        aria-label="remove"
-                                                    >
-                                                        <b>X</b>
-                                                    </button>
-                                                </div>
-                                                <motion.div
-                                                    animate={isSpinning ? { y: [0, -10, 0], scale: [1, 1.03, 1] } : { y: 0, scale: 1 }}
-                                                    transition={isSpinning ? { duration: 0.32, repeat: Infinity } : {}}
-                                                    className="mt-1 rounded-2xl border border-slate-200 bg-white px-0 py-6 text-center shadow-sm"
+                                            {/* ==============================
+                    TOP HEADER
+                ============================== */}
+                                            <div
+                                                className="
+                        relative
+                        flex
+                        h-12
+                        items-center
+                        justify-center
+                    "
+                                            >
+
+                                                {/* ลำดับ */}
+                                                <div
+                                                    className={`
+                            rounded-full
+                            px-6
+                            py-2
+
+                            text-[16px]
+                            font-bold
+
+                            ${isSpinning
+                                                            ? "bg-[#168AE5] text-white"
+                                                            : i === 0
+                                                                ? "bg-[#E3F6EE] text-[#008B68]"
+                                                                : i === 1
+                                                                    ? "bg-[#E8F2FF] text-[#2674C7]"
+                                                                    : "bg-[#FFF0E8] text-[#D46632]"
+                                                        }
+                        `}
                                                 >
+                                                    ลำดับ {i + 1}
+                                                </div>
 
-                                                    <div className="text-2xl text-center font-bold text-slate-800">
-                                                        {isSpinning ? (
-                                                            'กำลังสุ่ม…'
-                                                        ) : (
-                                                            `เลขสมาชิก: ${item.MEMBER_NO}`
-                                                        )}
-                                                    </div>
-                                                    <div className=" font-extrabold tracking-wide text-3xl">
-                                                        {first} <br /> {last}
-                                                    </div>
 
-                                                    {/* <div className="mt-2 text-sm text-slate-800">
-                                                        {isSpinning ? (
-                                                            'กำลังสุ่ม…'
-                                                        ) : (
-                                                            `กลุ่มผู้แทน : ${item.GROUP_NAME}`
-                                                        )}
-                                                    </div> */}
-                                                </motion.div>
+                                                {/* ปุ่ม X */}
+                                                <button
+                                                    onClick={() => {
+                                                        setReels(prev =>
+                                                            prev.filter(
+                                                                v => v.MEMBER_NO != item.MEMBER_NO
+                                                            )
+                                                        );
+                                                    }}
+                                                    className="
+                            absolute
+                            right-0
+                            top-1/2
+                            flex
+                            h-9
+                            w-9
+                            -translate-y-1/2
+                            items-center
+                            justify-center
+
+                            rounded-full
+
+                            bg-[#EAF0F3]
+
+                            text-[17px]
+                            font-bold
+                            text-[#365269]
+
+                            transition-all
+                            duration-200
+
+                            hover:scale-105
+                            hover:bg-[#DCE6EA]
+
+                            active:scale-90
+                        "
+                                                    aria-label="remove"
+                                                >
+                                                    ✕
+                                                </button>
+
                                             </div>
+
+
+                                            {/* ==============================
+                    CONTENT
+                ============================== */}
+                                            <div
+                                                className="
+                        relative
+                        mt-2
+                        overflow-hidden
+                        rounded-[24px]
+
+                        bg-white
+
+                        px-5
+                        py-6
+
+                        text-center
+
+                        shadow-[inset_0_0_0_1px_rgba(15,60,80,0.06)]
+                    "
+                                            >
+
+                                                {isSpinning ? (
+
+                                                    /* ==========================
+                                                        SPINNING
+                                                    ========================== */
+                                                    <div
+                                                        className="
+                                flex
+                                h-[180px]
+                                flex-col
+                                items-center
+                                justify-center
+                            "
+                                                    >
+
+                                                        {/* Animated Circle */}
+                                                        <div
+                                                            className="
+                                    relative
+                                    mb-5
+                                    flex
+                                    h-20
+                                    w-20
+                                    items-center
+                                    justify-center
+                                "
+                                                        >
+
+                                                            {/* Outer spinner */}
+                                                            <motion.div
+                                                                animate={{
+                                                                    rotate: 360
+                                                                }}
+                                                                transition={{
+                                                                    duration: 0.9,
+                                                                    repeat: Infinity,
+                                                                    ease: "linear"
+                                                                }}
+                                                                className="
+                                        absolute
+                                        inset-0
+
+                                        rounded-full
+
+                                        border-[5px]
+                                        border-sky-100
+                                        border-t-[#168AE5]
+                                        border-r-cyan-400
+                                    "
+                                                            />
+
+
+                                                            {/* Inner */}
+                                                            <motion.div
+                                                                animate={{
+                                                                    scale: [1, 1.15, 1]
+                                                                }}
+                                                                transition={{
+                                                                    duration: 0.8,
+                                                                    repeat: Infinity
+                                                                }}
+                                                                className="
+                                        flex
+                                        h-14
+                                        w-14
+                                        items-center
+                                        justify-center
+
+                                        rounded-full
+
+                                        bg-gradient-to-br
+                                        from-sky-100
+                                        to-blue-200
+
+                                        text-2xl
+                                    "
+                                                            >
+                                                                👤
+                                                            </motion.div>
+
+                                                        </div>
+
+
+                                                        {/* Text */}
+                                                        <motion.div
+                                                            animate={{
+                                                                opacity: [0.55, 1, 0.55]
+                                                            }}
+                                                            transition={{
+                                                                duration: 1,
+                                                                repeat: Infinity
+                                                            }}
+                                                            className="
+                                    text-[24px]
+                                    font-extrabold
+                                    text-[#075985]
+                                "
+                                                        >
+                                                            กำลังสุ่ม...
+                                                        </motion.div>
+
+
+                                                        {/* Animated dots */}
+                                                        <div className="mt-3 flex gap-2">
+
+                                                            {[0, 1, 2].map(dot => (
+                                                                <motion.div
+                                                                    key={dot}
+                                                                    animate={{
+                                                                        y: [0, -6, 0]
+                                                                    }}
+                                                                    transition={{
+                                                                        duration: 0.55,
+                                                                        repeat: Infinity,
+                                                                        delay: dot * 0.12
+                                                                    }}
+                                                                    className="
+                                            h-2.5
+                                            w-2.5
+                                            rounded-full
+                                            bg-sky-400
+                                        "
+                                                                />
+                                                            ))}
+
+                                                        </div>
+
+                                                    </div>
+
+                                                ) : (
+
+                                                    /* ==========================
+                                                        RESULT
+                                                    ========================== */
+                                                    <motion.div
+                                                        initial={{
+                                                            opacity: 0,
+                                                            scale: 0.94
+                                                        }}
+                                                        animate={{
+                                                            opacity: 1,
+                                                            scale: 1
+                                                        }}
+                                                        className="
+                                flex
+                                flex-col
+                                items-center
+                                justify-center
+                            "
+                                                    >
+
+                                                        {/* Member Number */}
+                                                        <div
+                                                            className="
+                                    mb-2
+                                    rounded-full
+                                    bg-[#EEF4F6]
+
+                                    px-5
+                                    py-1
+
+                                    text-[18px]
+                                    font-semibold
+                                    text-[#3D5B6C]
+                                "
+                                                        >
+                                                            เลขสมาชิก:
+
+                                                            <span
+                                                                className="
+                                        ml-2
+                                        text-[22px]
+                                        font-extrabold
+                                        text-[#062B46]
+                                    "
+                                                            >
+                                                                {item.MEMBER_NO}
+                                                            </span>
+                                                        </div>
+
+
+                                                        {/* Name */}
+                                                        <div
+                                                            className="
+                                    text-[30px]
+                                    font-extrabold
+                                    leading-[1.35]
+                                    tracking-wide
+                                    text-[#071E3D]
+                                "
+                                                        >
+                                                            {first}
+
+                                                            <br />
+
+                                                            {last}
+                                                        </div>
+
+                                                    </motion.div>
+
+                                                )}
+
+                                            </div>
+
+
+                                            {/* ==============================
+                    BOTTOM COLOR ACCENT
+                ============================== */}
+                                            <div
+                                                className={`
+                        absolute
+                        bottom-0
+                        left-[10%]
+                        h-[4px]
+                        w-[80%]
+                        rounded-full
+
+                        ${isSpinning
+                                                        ? "bg-sky-400"
+                                                        : i === 0
+                                                            ? "bg-emerald-400"
+                                                            : i === 1
+                                                                ? "bg-blue-400"
+                                                                : "bg-orange-400"
+                                                    }
+                    `}
+                                            />
+
                                         </motion.div>
-                                    )
-                                }
-                                )}
+                                    );
+                                })}
                             </div>
 
                             {/* Controls */}
-                            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-                                <button
-                                    onClick={startDraw}
-                                    disabled={isSpinning || !canDraw}
-                                    className="w-full max-w-xs border-2 border-gray-50 rounded-2xl bg-slate-900 px-6 py-3 text-base font-bold text-white shadow disabled:opacity-50"
-                                >
-                                    {isSpinning ? 'กำลังสุ่ม…' : 'เริ่มสุ่ม'}
-                                </button>
 
-                                <button
-                                    disabled={isSpinning || !canDraw}
-                                    onClick={resetAll}
-                                    className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-                                >
-                                    รีเซ็ต
-                                </button>
-                            </div>
-                            <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-                                <button
-                                    disabled={isSpinning || !canDraw}
-                                    onClick={() => {
-                                        // saveMember
-                                        const selectedPrize = options.find(o => o.value === value);
-                                        if (!selectedPrize) return; // ✅ ทำให้ด้านล่างไม่เป็น undefined
-                                        const updatedReels: USERITEM[] = reels.map((u) => ({
-                                            ...u,
-                                            prize_id: selectedPrize?.value,
-                                            prize_name: selectedPrize?.label,
+                            {
+                                reels.length > 0 && isSpinning == false ?
+                                    <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                                        <button
+                                            disabled={isSpinning || !canDraw}
+                                            onClick={resetAll}
+                                            className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+                                        >
+                                            รีเซ็ต
+                                        </button>
+                                        <button
+                                            disabled={isSpinning || !canDraw}
+                                            onClick={() => {
+                                                // saveMember
+                                                const selectedPrize = options.find(o => o.value === value);
+                                                if (!selectedPrize) return; // ✅ ทำให้ด้านล่างไม่เป็น undefined
+                                                const updatedReels: USERITEM[] = reels.map((u) => ({
+                                                    ...u,
+                                                    prize_id: selectedPrize?.value,
+                                                    prize_name: selectedPrize?.label,
 
-                                        }));
-                                        setWinners(prev => [...prev, ...updatedReels]);
-                                        setReels([]);
-                                    }}
-                                    className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-                                >
-                                    จัดเก็บรายชื่อ
-                                </button>
-                            </div>
+                                                }));
+                                                setWinners(prev => [...prev, ...updatedReels]);
+                                                setReels([]);
+                                            }}
+                                            className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+                                        >
+                                            จัดเก็บรายชื่อ
+                                        </button>
+                                    </div>
+                                    :
+
+                                    <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                                        <button
+                                            onClick={startDraw}
+                                            disabled={isSpinning || !canDraw}
+                                            className="
+                                            group
+                                            relative
+                                            flex h-50 w-50
+                                            shrink-0
+                                            items-center justify-center
+                                            rounded-full
+                                            border-[6px] border-[#FF8A8A]
+
+                                            bg-gradient-to-b
+                                            from-[#FF4B4B]
+                                            via-[#E51D2A]
+                                            to-[#B90E19]
+
+                                            text-xl
+                                            font-extrabold
+                                            text-white
+
+                                            shadow-[0_12px_0_#8F0B14,0_18px_28px_rgba(130,0,0,0.35),inset_0_4px_5px_rgba(255,255,255,0.35)]
+
+                                            transition-all
+                                            duration-100
+                                            ease-out
+
+                                            hover:brightness-110
+
+                                            active:translate-y-[9px]
+                                            active:shadow-[0_3px_0_#8F0B14,0_7px_12px_rgba(130,0,0,0.25),inset_0_3px_8px_rgba(120,0,0,0.25)]
+
+                                            disabled:cursor-not-allowed
+                                            disabled:opacity-50
+                                            disabled:active:translate-y-0
+                                        "
+                                        >
+                                            {/* แสงสะท้อนด้านบน */}
+                                            <span
+                                                className="
+                                                        pointer-events-none
+                                                        absolute
+                                                        left-[20%]
+                                                        top-[12%]
+                                                        h-[25%]
+                                                        w-[60%]
+                                                        rounded-full
+                                                        bg-white/20
+                                                        blur-[1px]
+                                                    "
+                                            />
+
+                                            <span className="relative z-10 text-4xl font-bold text-center leading-tight">
+                                                {isSpinning ? (
+                                                    <>
+                                                        กำลังสุ่ม...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        เริ่มสุ่ม
+                                                    </>
+                                                )}
+                                            </span>
+                                        </button>
+                                    </div>
+
+                            }
 
                             <div className="mt-3 text-center text-xs text-slate-500">
                                 โหลดสมาชิกทั้งหมด: <b >{users.length}</b> คน
@@ -504,57 +889,256 @@ export default function Page() {
                 </div>
             </div>
             <div className="flex-1 min-h-0 border-l-1 border-slate-200 ">
-                <h1 className="text-xl font-semibold text-center mb-3">
-                    รายชื่อผู้โชคดี
-                </h1>
+                {/* =========================
+    RIGHT WINNER PANEL
+========================= */}
+                <div
+                    className="
+        flex h-full min-h-0 flex-col
+        rounded-[30px]
+        border border-slate-200
+        bg-[#F4F9FA]
+        p-4
+        shadow-[0_18px_45px_rgba(0,42,72,0.16)]
+    "
+                >
+                    {/* Header */}
+                    <div className="mb-4 flex items-center gap-3 px-2 pt-1">
+                        {/* Gift Icon */}
+                        <div
+                            className="
+                flex h-11 w-11 shrink-0
+                items-center justify-center
+                rounded-[15px]
+                bg-[#E4F5ED]
+                text-[23px]
+            "
+                        >
+                            🎁
+                        </div>
 
-                {/* Scroll container */}
-                <div className="h-[calc(80vh-60px)] overflow-y-auto pr-1 ">
-                    <div className="space-y-2 ml-1">
-                        {winners.map((u, i) => (
-                            <div
-                                key={u.MEMBER_NO}
-                                className="rounded-xl border border-slate-200 bg-white p-1 shadow-sm hover:bg-slate-50 transition"
+                        <div className="min-w-0">
+                            <h1
+                                className="
+                    text-[25px]
+                    font-bold
+                    leading-none
+                    text-[#06224A]
+                "
                             >
-                                <div className="flex items-start gap-3">
-                                    {/* index badge */}
-                                    <div className="flex h-7 w-7 items-center ali justify-center rounded-full bg-slate-900 text-white text-sm font-semibold">
-                                        {i + 1}
-                                    </div>
-                                    {/* text */}
-                                    <div className="min-w-0">
-                                        <div className="text-lg text-slate-900 truncate text-black">
-                                            {u.MEMBER_NAME} <span className="text-slate-900 font-medium">({u.MEMBER_NO})</span>
-                                        </div>
-                                        {/* <div className="text-m text-slate-600 mt-0.5">
-                                            กลุ่มผู้แทน : <span className="font-medium text-slate-700">{u.GROUP_NAME}</span>
-                                        </div> */}
-                                        <div className="text-lg mt-0.5 text-black">
-                                            ของรางวัล : <span className="font-medium text-slate-900">{u.prize_name}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div className='mt-3 ml-1'>
-                    {
-                        winners.length > 0 ? (
+                                รายชื่อผู้โชคดี
+                            </h1>
 
-                            <div style={{ alignItems: "center" }}>
-                                <button
-                                    onClick={() => {
-                                        saveMember();
-                                    }}
-                                    className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
-                                >
-                                    บันทึกรายชื่อผู้โชคดี
-                                </button>
+                            <div className="mt-1.5 text-[13px] font-medium text-slate-500">
+                                ผู้ได้รับรางวัลล่าสุด
                             </div>
-                        )
-                            : null
-                    }
+                        </div>
+                    </div>
+
+
+                    {/* =========================
+        SCROLL WINNER LIST
+    ========================= */}
+                    <div
+                        className="
+                            min-h-0 flex-1
+                            overflow-y-auto
+                            pr-1
+
+                            [&::-webkit-scrollbar]:w-1.5
+                            [&::-webkit-scrollbar-track]:bg-transparent
+                            [&::-webkit-scrollbar-thumb]:rounded-full
+                            [&::-webkit-scrollbar-thumb]:bg-slate-300
+                        "
+                    >
+                        <div className="space-y-2.5">
+                            {winners.map((u, i) => {
+
+                                /* สีลำดับ */
+                                const badgeColor =
+                                    i === 0
+                                        ? "bg-[#F4B61B] shadow-[0_4px_10px_rgba(244,182,27,0.35)]"
+                                        : i === 1
+                                            ? "bg-[#6999C7]"
+                                            : i === 2
+                                                ? "bg-[#D96B32]"
+                                                : "bg-[#526E83]";
+
+                                return (
+                                    <div
+                                        key={u.MEMBER_NO}
+                                        className="
+                                            group
+                                            rounded-[20px]
+                                            border border-[#E2EBED]
+                                            bg-white
+                                            px-3.5 py-3
+                                            shadow-[0_4px_12px_rgba(0,45,70,0.07)]
+
+                                            transition-all
+                                            duration-200
+
+                                            hover:-translate-y-[1px]
+                                            hover:shadow-[0_7px_18px_rgba(0,45,70,0.12)]
+                                        "
+                                    >
+                                        <div className="flex items-center gap-3">
+
+                                            {/* =====================
+                                INDEX BADGE
+                            ====================== */}
+                                            <div
+                                                className={`
+                                    flex
+                                    h-10 w-10
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-full
+
+                                    text-[17px]
+                                    font-bold
+                                    text-white
+
+                                    ${badgeColor}
+                                `}
+                                            >
+                                                {i + 1}
+                                            </div>
+
+
+                                            {/* =====================
+                                MEMBER DETAIL
+                            ====================== */}
+                                            <div className="min-w-0 flex-1">
+
+                                                {/* Member Name */}
+                                                <div
+                                                    className="
+                                        truncate
+                                        text-[17px]
+                                        font-bold
+                                        leading-[1.3]
+                                        text-[#06224A]
+                                    "
+                                                >
+                                                    {u.MEMBER_NAME}
+
+                                                    <span className="ml-1 font-semibold text-[#183A59]">
+                                                        ({u.MEMBER_NO})
+                                                    </span>
+                                                </div>
+
+
+                                                {/* Prize */}
+                                                <div
+                                                    className="
+                                        mt-1
+                                        flex
+                                        min-w-0
+                                        items-center
+                                        gap-1
+
+                                        text-[14px]
+                                        leading-tight
+                                    "
+                                                >
+                                                    <span className="shrink-0 font-medium text-[#71818C]">
+                                                        ของรางวัล :
+                                                    </span>
+
+                                                    <span
+                                                        className="
+                                            truncate
+                                            font-semibold
+                                            text-[#31556B]
+                                        "
+                                                    >
+                                                        {u.prize_name}
+                                                    </span>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+
+                    {/* =========================
+        BOTTOM SAVE BUTTON
+    ========================= */}
+                    {winners.length > 0 && (
+                        <div
+                            className="
+                mt-4
+                border-t
+                border-[#D9E5E8]
+                pt-4
+            "
+                        >
+                            <button
+                                onClick={() => {
+                                    saveMember();
+                                }}
+                                className="
+                    flex
+                    w-full
+                    items-center
+                    justify-center
+                    gap-2.5
+
+                    rounded-[20px]
+                    border
+                    border-[#DCE7E9]
+
+                    bg-white
+
+                    px-5
+                    py-3.5
+
+                    text-[16px]
+                    font-bold
+                    text-[#123B59]
+
+                    shadow-[0_5px_15px_rgba(0,45,70,0.09)]
+
+                    transition-all
+                    duration-200
+
+                    hover:-translate-y-[1px]
+                    hover:bg-[#F9FCFC]
+                    hover:shadow-[0_8px_20px_rgba(0,45,70,0.14)]
+
+                    active:scale-[0.98]
+                "
+                            >
+                                {/* Save icon */}
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    className="h-5 w-5"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M5 4h11l3 3v13H5V4Z"
+                                    />
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M8 4v6h8V4M8 16h8"
+                                    />
+                                </svg>
+
+                                บันทึกรายชื่อผู้โชคดี
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
