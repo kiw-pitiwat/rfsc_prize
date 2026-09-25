@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono ,Kanit } from "next/font/google";
+import { Geist, Sarabun ,Kanit ,Itim} from "next/font/google";
 
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "./globals.css";
@@ -11,6 +11,20 @@ const kanit = Kanit({
   weight: ["200", "300", "400", "500", "600", "700"],
   display: "swap",
   variable: "--font-kanit",
+});
+
+const itim = Itim({
+  subsets: ["latin", "thai"],
+  weight: ["400"],
+  display: "swap",
+  variable: "--font-itim",
+});
+
+const sarabun = Sarabun({
+  subsets: ["latin", "thai"],
+  weight: ["200", "300", "400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-sarabun",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +40,7 @@ export default function RootLayout({
     return (
         <html lang="th">
             <body
-                className={` ${kanit.variable} antialiased`}
+                className={`${sarabun.className} antialiased`}
             >
                 <div className="min-h-screen">
                     <Navbar />

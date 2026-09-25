@@ -24,7 +24,7 @@ export default function Navbar() {
                     <span className="inline-flex h-10 w-14 items-center justify-center rounded-xl bg-slate-900 text-white">
                         Forest Co-op
                     </span>
-                    <span>สุ่มรายชื่อผู้โชคดี</span>
+                    <span className="text-lg font-bold text-white">สุ่มรายชื่อผู้โชคดี</span>
                 </Link>
 
                 {/* Desktop menu */}

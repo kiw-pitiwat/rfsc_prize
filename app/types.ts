@@ -13,6 +13,7 @@ export interface PRIZEITEM {
     prize_id: number;
     prize_name: string;
     prize_qty: number;
+    prize_desc:string;
 };
 
 export interface USERWINNER  {

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 export type DropdownOption<T extends string | number> = {
     value: T;
     label: string;
+    desc:string;
     disabled?: boolean;
 };
 

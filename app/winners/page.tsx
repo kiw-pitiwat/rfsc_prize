@@ -21,7 +21,7 @@ const ReactTabulatorNoSSR = dynamic(
         // ✅ wrapper ที่ส่ง ref ผ่าน prop
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return function WrappedTabulator({ forwardedRef, ...props }: any) {
-            console.log('WrappedTabulator',forwardedRef)
+            console.log('WrappedTabulator', forwardedRef)
             return <RT {...props} ref={forwardedRef} />;
         };
     },
@@ -69,10 +69,9 @@ export default function Page() {
             "or"
         );
     }, [keyword, table]);
-
     const columns = useMemo<ColumnDefinition[]>(() => {
         return [
-            { title: "No.", field: "row_num", sorter: "integer", width: '10%' },
+            { title: "No.", field: "row_num", sorter: "number", width: '10%' },
             { title: "เลขสมาชิก", field: "MEMBER_NO", sorter: "string", width: '20%' },
             { title: "ชื่อ-สกุล", field: "MEMBER_NAME", sorter: "string", width: '30%' },
             { title: "ของรางวัล", field: "PRIZE_NAME", sorter: "string", width: '20%' },
@@ -83,20 +82,21 @@ export default function Page() {
                 formatter: (cell) => {
                     const v = cell.getValue();
                     const d = v ? new Date(v) : null;
+
                     if (!d || isNaN(d.getTime())) return "";
+
                     return d.toLocaleString("th-TH", {
                         year: "numeric",
                         month: "2-digit",
                         day: "2-digit",
                         hour: "2-digit",
                         minute: "2-digit",
-                    }) + ' น.';
+                    }) + " น.";
                 },
                 width: '20%'
             }
         ];
     }, []);
-
 
     // options
     const options = useMemo<ReactTabulatorOptions>(() => {
@@ -155,7 +155,7 @@ export default function Page() {
             // 3) ถ้าไม่ ok -> โยน error พร้อมข้อความจาก API (ถ้ามี)
             if (!res.ok) {
                 const msg =
-                    data?.message || data?.error || `ล้มเหลว (HTTP ${res.status})`;
+                    data?.message || data?.error || `ล้มเหลว(HTTP ${ res.status })`;
                 throw new Error(msg);
             }
 
@@ -165,7 +165,7 @@ export default function Page() {
         } catch (err: unknown) {
             console.error(err);
             const msg = err instanceof Error ? err.message : typeof err === "string" ? err : "เกิดข้อผิดพลาด";
-            alert(`ล้างรายชื่อไม่สำเร็จ ❌\n${msg}`);
+            alert(`ล้างรายชื่อไม่สำเร็จ ❌\n${ msg } `);
         }
     };
 

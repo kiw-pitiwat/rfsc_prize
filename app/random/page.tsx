@@ -42,7 +42,7 @@ function pickUniqueUsersByMemberNo(list: USERITEM[], k: number): USERITEM[] {
 }
 
 function fireConfetti(): void {
-    const end = Date.now() + 200;
+    const end = Date.now() + 1000;
 
     const tick = () => {
         confetti({
@@ -61,7 +61,7 @@ export default function Page() {
     const [users, setUsers] = useState<USERITEM[]>([]);
     const [candidates, setCandidates] = useState<USERITEM[]>([]);
 
-    const [drawCount, setDrawCount] = useState<number>(5);
+    const [drawCount, setDrawCount] = useState<number>(1);
 
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
@@ -78,6 +78,14 @@ export default function Page() {
     const lastFetchControllerRef = useRef<AbortController | null>(null);
     const [options, setOptions] = useState<DropdownOption<DropdownValue>[]>([]);
     const [value, setValue] = useState<DropdownValue | null>(null);
+
+    const accent = {
+        badge: "bg-[#E3F6EE] text-[#008B68]",
+        line: "bg-[#20C997]",
+        glow: "shadow-[0_10px_30px_rgba(32,201,151,0.18)]",
+        spinningBadge: "bg-[#168AE5] text-white",
+        spinningLine: "bg-sky-400",
+    };
 
     const pool = useMemo(() => {
         const won = new Set<number>([]);
@@ -100,6 +108,20 @@ export default function Page() {
         intervalsRef.current.forEach((id) => window.clearInterval(id));
         intervalsRef.current = [];
     };
+
+    const saveListWinners = async () => {
+        // saveMember
+        const selectedPrize = options.find(o => o.value === value);
+        if (!selectedPrize) return; // ✅ ทำให้ด้านล่างไม่เป็น undefined
+        const updatedReels: USERITEM[] = reels.map((u) => ({
+            ...u,
+            prize_id: selectedPrize?.value,
+            prize_name: selectedPrize?.label,
+
+        }));
+        setWinners(prev => [...prev, ...updatedReels]);
+        setReels([]);
+    }
 
     const saveMember = async () => {
         // ✅ confirm ก่อนบันทึก
@@ -153,10 +175,15 @@ export default function Page() {
         // setHistoryNos([]);
     };
 
+     const resetSpin = (): void => {
+        stopAllIntervals();
+        setIsSpinning(false);
+        setReels([]);
+        // setHistoryNos([]);
+    };
+   
     const startDraw = (): void => {
         if (isSpinning) return;
-
-
         const k = Math.max(1, Math.min(50, Math.floor(drawCount || 1)));
 
         if (loading) return;
@@ -176,7 +203,6 @@ export default function Page() {
         console.log('Picked winners:', picked);
 
         for (let i = 0; i < k; i++) {
-
             const intervalId = window.setInterval(() => {
                 setReels((prev) => {
                     const next = [...prev];
@@ -184,15 +210,11 @@ export default function Page() {
                     return next;
                 });
             }, 55 + i * 8);
-
             console.log('setReels ', i, ' :', pool[Math.floor(Math.random() * pool.length)]);
-
             intervalsRef.current.push(intervalId);
-
-            const stopAfter = 1000 + i * 420;
+            const stopAfter = 2000 + i * 420;
             window.setTimeout(() => {
                 window.clearInterval(intervalId);
-
                 setReels((prev) => {
                     const next = [...prev];
                     next[i] = picked[i];
@@ -205,7 +227,7 @@ export default function Page() {
                         // setHistoryNos((h) => [...h, ...picked.map((x) => x.MEMBER_NO)]);
                         setIsSpinning(false);
                         fireConfetti();
-                    }, 320);
+                    }, 2000);
                 }
             }, stopAfter);
         }
@@ -281,6 +303,7 @@ export default function Page() {
             const mapped: DropdownOption<DropdownValue>[] = list.map((d) => ({
                 value: d.prize_id,
                 label: d.prize_name,
+                desc: d.prize_desc
             }));
             setOptions(mapped);
 
@@ -302,22 +325,56 @@ export default function Page() {
     }, []);
 
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            console.log('Key pressed:', e.code);
+            if (e.code === "Space") {
+                e.preventDefault();
+                console.log("SPACE PRESSED");
+                console.log('reels.length:', reels.length, 'isSpinning:', isSpinning);
+                if (reels.length === 0 && isSpinning == false) {
+                    startDraw();
+                }
+            }
+
+            if(e.code === "KeyS") {
+                e.preventDefault();
+                if(reels.length > 0 && isSpinning == false){
+                    saveListWinners();
+                }
+            }
+
+             if(e.code === "KeyR") {
+                e.preventDefault();
+                if(reels.length > 0 && isSpinning == false){
+                    resetSpin();
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [startDraw,saveListWinners,resetSpin]);
+
     const splitThaiFullName = (fullName = "") => {
         const parts = fullName.trim().split(/\s+/); // ตัดช่องว่างซ้ำๆ
         if (parts.length <= 1) return { first: fullName.trim(), last: "" };
         return { first: parts.slice(0, -1).join(" "), last: parts[parts.length - 1] };
     };
 
+    const isSingleWinner = reels.length === 1;
+
     return (
         <div className='mx-auto px-1 flex '>
             <div className='flex-4'>
-                <div className="relative min-h-screen w-full  text-slate-900">
+                <div className="relative w-full  text-slate-900">
                     {/* HUD */}
                     <div className=" flex items-center gap-2 o">
                         <div className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 text-s text-slate-900 shadow-sm">
-                            เหลือรายชื่อ {pool.length} คน
+                            เหลือรายชื่อ {pool.length.toLocaleString()} คน
                         </div>
-
                         <div className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 text-s text-slate-900 shadow-sm">
                             สุ่มต่อรอบ
                             <input
@@ -343,31 +400,111 @@ export default function Page() {
                     </div>
 
                     {/* Main stage */}
-                    <div className="relative z-10 flex min-h-screen flex-col items-center mt-0 justify-center px-2">
+                    <div className="relative z-10  flex   flex-col items-center mt-8 justify-center px-2">
                         <AnimatePresence>
-                            {!isSpinning && winners.length === 0 && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 14 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 14 }}
-                                    className="mb-2 text-center"
+                            {/* {!isSpinning && winners.length === 0 && ( */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 14 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 14 }}
+                                className="mb-2 text-center"
+                            >
+
+                                {/*                                 
+                                <div className="text-3xl font-extrabold tracking-wide sm:text-5xl text-white">
+                                    จับรางวัล :  {value ? options.find(o => o.value === value)?.label : "..."}
+                                </div>
+                                <div className="text-lg pt-3 tracking-wide sm:text-2xl text-white">
+                                    {value ? options.find(o => o.value === value)?.desc : ""}
+                                </div> */}
+
+                                <div
+                                    className="
+                                        mx-auto
+                                        w-full
+                                        max-w-5xl
+                                        rounded-[32px]
+                                        border-[4px]
+                                        border-yellow-300
+                                        bg-gradient-to-r
+                                        from-blue-950
+                                        via-blue-800
+                                        to-indigo-700
+                                        px-4
+                                        py-3
+                                        text-center
+                                        shadow-[0_18px_45px_rgba(0,0,0,0.38)]
+                                    "
                                 >
-                                    <div className="text-3xl font-extrabold tracking-wide sm:text-5xl text-white">
-                                        จับรางวัล
+                                    {/* หัวป้าย */}
+                                    <div
+                                        className="
+                                            mb-3
+                                            inline-block
+                                            rounded-full
+                                            bg-yellow-300
+                                            px-5
+                                            py-2
+                                            text-base
+                                            font-extrabold
+                                            tracking-[0.2em]
+                                            text-blue-950
+                                            sm:text-3xl
+                                        "
+                                    >
+                                        รางวัล
                                     </div>
-                                    <div className="mt-2 text-sm text-slate-600 sm:text-base">
-                                        กดปุ่มด้านล่างเพื่อเริ่มสุ่ม
+
+                                    {/* ชื่อรางวัล */}
+                                    <div
+                                        className="
+                                            text-3xl
+                                            font-extrabold
+                                            leading-tight
+                                            tracking-wide
+                                            text-white
+                                            drop-shadow-[0_3px_6px_rgba(0,0,0,0.45)]
+                                            sm:text-5xl
+                                        "
+                                    >
+                                        <span className="text-yellow-200">
+                                            {value ? options.find(o => o.value === value)?.label : "..."}
+                                        </span>
                                     </div>
-                                    {error ? (
-                                        <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-                                            โหลดรายชื่อไม่สำเร็จ: {error}
+
+                                    {/* รายละเอียด */}
+                                    {value && (
+                                        <div
+                                            className="
+                                                mt-4
+                                                rounded-[20px]
+                                                bg-white
+                                                px-4
+                                                py-1
+                                                text-lg
+                                                font-bold
+                                                tracking-wide
+                                                text-slate-800
+                                                shadow-[inset_0_0_0_2px_rgba(37,99,235,0.16)]
+                                                sm:text-2xl
+                                            "
+                                        >
+                                            {options.find(o => o.value === value)?.desc}
                                         </div>
-                                    ) : null}
-                                </motion.div>
-                            )}
+                                    )}
+                                </div>
+
+
+                                {error ? (
+                                    <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+                                        โหลดรายชื่อไม่สำเร็จ: {error}
+                                    </div>
+                                ) : null}
+                            </motion.div>
+                            {/* )} */}
                         </AnimatePresence>
 
-                        <AnimatePresence>
+                        {/* <AnimatePresence>
                             {!isSpinning && reels.length > 0 && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 14 }}
@@ -380,19 +517,23 @@ export default function Page() {
                                     </div>
                                 </motion.div>
                             )}
-                        </AnimatePresence>
+                        </AnimatePresence> */}
 
 
-                        <div className="w-full max-w-6xl">
-                            {/* ✅ Grid: บังคับไม่เกิน 5 กล่อง/แถว */}
+                        <div className="w-full max-w-6xl mt-4 ">
+
                             <div
                                 className="grid gap-5"
                                 style={{
-                                    gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`
+                                    gridTemplateColumns: isSingleWinner
+                                        ? "minmax(0, 1fr)"
+                                        : `repeat(${gridCols}, minmax(0, 1fr))`
                                 }}
                             >
                                 {reels.map((item, i) => {
-                                    const { first, last } = splitThaiFullName(item.MEMBER_NAME);
+
+                                    const { first, last } =
+                                        splitThaiFullName(item.MEMBER_NAME);
 
                                     return (
                                         <motion.div
@@ -400,82 +541,84 @@ export default function Page() {
 
                                             initial={{
                                                 opacity: 0,
-                                                y: 20,
-                                                scale: 0.96
+                                                y: 15,
+                                                scale: 0.97,
                                             }}
 
                                             animate={{
                                                 opacity: 1,
                                                 y: 0,
-                                                scale: 1
+                                                scale: 1,
                                             }}
 
                                             transition={{
                                                 type: "spring",
-                                                stiffness: 220,
-                                                damping: 20
+                                                stiffness: 240,
+                                                damping: 20,
                                             }}
 
                                             className={`
-                    relative
-                    overflow-hidden
-                    rounded-[30px]
-                    border
-                    p-3
+                                                relative
+                                                overflow-hidden
 
-                    transition-all
-                    duration-300
+                                                rounded-[24px]
 
-                    ${isSpinning
-                                                    ? `
-                                border-sky-300
-                                bg-[#EDF8FF]
-                                shadow-[0_0_0_3px_rgba(56,189,248,0.15),0_18px_45px_rgba(14,165,233,0.25)]
-                            `
-                                                    : `
-                                border-white/80
-                                bg-[#F8FBFC]
-                                shadow-[0_12px_35px_rgba(0,50,80,0.14)]
-                            `
+                                                border
+                                                border-white/90
+
+                                                bg-[#F8FBFC]
+
+                                                p-[6px]
+
+                                                ${accent.glow}
+
+                                                transition-all
+                                                duration-300
+
+                                                ${isSingleWinner
+                                                    ? "mx-auto w-full max-w-5xl"
+                                                    : ""
                                                 }
-                `}
+                    `}
                                         >
 
-                                            {/* ==============================
-                    TOP HEADER
-                ============================== */}
+                                            {/* ========================================
+                        HEADER
+                    ========================================= */}
                                             <div
-                                                className="
-                        relative
-                        flex
-                        h-12
-                        items-center
-                        justify-center
-                    "
+                                                className={`
+                            relative
+                            flex
+                            items-center
+                            justify-center
+
+                            ${isSingleWinner
+                                                        ? "h-[52px]"
+                                                        : "h-[38px]"
+                                                    }
+                        `}
                                             >
 
                                                 {/* ลำดับ */}
-                                                <div
+                                                {/* <div
                                                     className={`
-                            rounded-full
-                            px-6
-                            py-2
+                                rounded-full
 
-                            text-[16px]
-                            font-bold
+                                font-extrabold
 
-                            ${isSpinning
-                                                            ? "bg-[#168AE5] text-white"
-                                                            : i === 0
-                                                                ? "bg-[#E3F6EE] text-[#008B68]"
-                                                                : i === 1
-                                                                    ? "bg-[#E8F2FF] text-[#2674C7]"
-                                                                    : "bg-[#FFF0E8] text-[#D46632]"
+                                ${isSingleWinner
+                                                            ? "px-8 py-[5px] text-[20px]"
+                                                            : "px-6 py-[4px] text-[17px]"
                                                         }
-                        `}
+
+                                ${isSpinning
+                                                            ? accent.spinningBadge
+                                                            : accent.badge
+                                                        }
+                            `}
                                                 >
                                                     ลำดับ {i + 1}
-                                                </div>
+                                                </div> */}
 
 
                                                 {/* ปุ่ม X */}
@@ -483,38 +626,45 @@ export default function Page() {
                                                     onClick={() => {
                                                         setReels(prev =>
                                                             prev.filter(
-                                                                v => v.MEMBER_NO != item.MEMBER_NO
+                                                                v =>
+                                                                    v.MEMBER_NO !=
+                                                                    item.MEMBER_NO
                                                             )
                                                         );
                                                     }}
-                                                    className="
-                            absolute
-                            right-0
-                            top-1/2
-                            flex
-                            h-9
-                            w-9
-                            -translate-y-1/2
-                            items-center
-                            justify-center
 
-                            rounded-full
+                                                    className={`
+                                absolute
+                                right-1
+                                top-1/2
 
-                            bg-[#EAF0F3]
+                                flex
 
-                            text-[17px]
-                            font-bold
-                            text-[#365269]
+                                -translate-y-1/2
 
-                            transition-all
-                            duration-200
+                                items-center
+                                justify-center
 
-                            hover:scale-105
-                            hover:bg-[#DCE6EA]
+                                rounded-full
 
-                            active:scale-90
-                        "
-                                                    aria-label="remove"
+                                bg-[#EAF0F3]
+
+                                font-bold
+                                text-[#365269]
+
+                                transition-all
+                                duration-200
+
+                                hover:scale-105
+                                hover:bg-[#DCE6EA]
+
+                                active:scale-90
+
+                                ${isSingleWinner
+                                                            ? "h-10 w-10 text-[18px]"
+                                                            : "h-8 w-8 text-[15px]"
+                                                        }
+                            `}
                                                 >
                                                     ✕
                                                 </button>
@@ -522,223 +672,209 @@ export default function Page() {
                                             </div>
 
 
-                                            {/* ==============================
-                    CONTENT
-                ============================== */}
+                                            {/* ========================================
+                        CONTENT
+                    ========================================= */}
                                             <div
-                                                className="
-                        relative
-                        mt-2
-                        overflow-hidden
-                        rounded-[24px]
+                                                className={`
+                            relative
+                            mt-1
 
-                        bg-white
+                            overflow-hidden
 
-                        px-5
-                        py-6
+                            bg-white
+                            text-center
 
-                        text-center
+                            shadow-[inset_0_0_0_1px_rgba(15,60,80,0.06)]
 
-                        shadow-[inset_0_0_0_1px_rgba(15,60,80,0.06)]
-                    "
+                            ${isSingleWinner
+                                                        ? "rounded-[22px] px-6 py-5"
+                                                        : "rounded-[18px] px-3 py-[9px]"
+                                                    }
+                        `}
                                             >
 
                                                 {isSpinning ? (
 
-                                                    /* ==========================
+                                                    /* =================================
                                                         SPINNING
-                                                    ========================== */
+                                                    ================================== */
                                                     <div
-                                                        className="
-                                flex
-                                h-[180px]
-                                flex-col
-                                items-center
-                                justify-center
-                            "
-                                                    >
-
-                                                        {/* Animated Circle */}
-                                                        <div
-                                                            className="
-                                    relative
-                                    mb-5
+                                                        className={`
                                     flex
-                                    h-20
-                                    w-20
                                     items-center
                                     justify-center
-                                "
-                                                        >
 
-                                                            {/* Outer spinner */}
-                                                            <motion.div
-                                                                animate={{
-                                                                    rotate: 360
-                                                                }}
-                                                                transition={{
-                                                                    duration: 0.9,
-                                                                    repeat: Infinity,
-                                                                    ease: "linear"
-                                                                }}
-                                                                className="
-                                        absolute
-                                        inset-0
+                                    ${isSingleWinner
+                                                                ? "h-[160px] gap-6"
+                                                                : "h-[88px] gap-4"
+                                                            }
+                                `}
+                                                    >
 
-                                        rounded-full
-
-                                        border-[5px]
-                                        border-sky-100
-                                        border-t-[#168AE5]
-                                        border-r-cyan-400
-                                    "
-                                                            />
-
-
-                                                            {/* Inner */}
-                                                            <motion.div
-                                                                animate={{
-                                                                    scale: [1, 1.15, 1]
-                                                                }}
-                                                                transition={{
-                                                                    duration: 0.8,
-                                                                    repeat: Infinity
-                                                                }}
-                                                                className="
-                                        flex
-                                        h-14
-                                        w-14
-                                        items-center
-                                        justify-center
-
-                                        rounded-full
-
-                                        bg-gradient-to-br
-                                        from-sky-100
-                                        to-blue-200
-
-                                        text-2xl
-                                    "
-                                                            >
-                                                                👤
-                                                            </motion.div>
-
-                                                        </div>
-
-
-                                                        {/* Text */}
                                                         <motion.div
                                                             animate={{
-                                                                opacity: [0.55, 1, 0.55]
+                                                                rotate: 360
                                                             }}
+
                                                             transition={{
-                                                                duration: 1,
+                                                                duration: 0.8,
+                                                                repeat: Infinity,
+                                                                ease: "linear"
+                                                            }}
+
+                                                            className={`
+                                        rounded-full
+
+                                        border-sky-100
+                                        border-t-sky-500
+                                        border-r-cyan-400
+
+                                        ${isSingleWinner
+                                                                    ? "h-16 w-16 border-[6px]"
+                                                                    : "h-11 w-11 border-[4px]"
+                                                                }
+                                    `}
+                                                        />
+
+
+                                                        <motion.div
+                                                            animate={{
+                                                                opacity: [0.5, 1, 0.5]
+                                                            }}
+
+                                                            transition={{
+                                                                duration: 0.8,
                                                                 repeat: Infinity
                                                             }}
-                                                            className="
-                                    text-[24px]
-                                    font-extrabold
-                                    text-[#075985]
-                                "
+
+                                                            className={`
+                                        font-extrabold
+                                        text-[#075985]
+
+                                        ${isSingleWinner
+                                                                    ? "text-[32px]"
+                                                                    : "text-[23px]"
+                                                                }
+                                    `}
                                                         >
                                                             กำลังสุ่ม...
                                                         </motion.div>
-
-
-                                                        {/* Animated dots */}
-                                                        <div className="mt-3 flex gap-2">
-
-                                                            {[0, 1, 2].map(dot => (
-                                                                <motion.div
-                                                                    key={dot}
-                                                                    animate={{
-                                                                        y: [0, -6, 0]
-                                                                    }}
-                                                                    transition={{
-                                                                        duration: 0.55,
-                                                                        repeat: Infinity,
-                                                                        delay: dot * 0.12
-                                                                    }}
-                                                                    className="
-                                            h-2.5
-                                            w-2.5
-                                            rounded-full
-                                            bg-sky-400
-                                        "
-                                                                />
-                                                            ))}
-
-                                                        </div>
 
                                                     </div>
 
                                                 ) : (
 
-                                                    /* ==========================
+                                                    /* =================================
                                                         RESULT
-                                                    ========================== */
+                                                    ================================== */
                                                     <motion.div
                                                         initial={{
                                                             opacity: 0,
-                                                            scale: 0.94
+                                                            scale: 0.96
                                                         }}
+
                                                         animate={{
                                                             opacity: 1,
                                                             scale: 1
                                                         }}
-                                                        className="
-                                flex
-                                flex-col
-                                items-center
-                                justify-center
-                            "
+
+                                                        className={`
+                                    flex
+                                    flex-col
+                                    items-center
+                                    justify-center
+
+                                    ${isSingleWinner
+                                                                ? "min-h-[175px]"
+                                                                : "min-h-[88px]"
+                                                            }
+                                `}
                                                     >
 
-                                                        {/* Member Number */}
+                                                        {/* =============================
+                                    MEMBER NUMBER
+                                ============================== */}
                                                         <div
-                                                            className="
-                                    mb-2
-                                    rounded-full
-                                    bg-[#EEF4F6]
+                                                            className={`
+                                        rounded-full
+                                        bg-[#EEF4F6]
 
-                                    px-5
-                                    py-1
+                                        font-semibold
+                                        text-[#456276]
 
-                                    text-[18px]
-                                    font-semibold
-                                    text-[#3D5B6C]
-                                "
+                                        ${isSingleWinner
+                                                                    ? "mb-3 px-8 py-[6px] text-[20px]"
+                                                                    : "mb-[5px] px-5 py-[3px] text-[16px]"
+                                                                }
+                                    `}
                                                         >
                                                             เลขสมาชิก:
 
                                                             <span
-                                                                className="
-                                        ml-2
-                                        text-[22px]
-                                        font-extrabold
-                                        text-[#062B46]
-                                    "
+                                                                className={`
+                                            ml-2
+                                            font-black
+                                            text-[#062B46]
+
+                                            ${isSingleWinner
+                                                                        ? "text-[28px]"
+                                                                        : "text-[21px]"
+                                                                    }
+                                        `}
                                                             >
                                                                 {item.MEMBER_NO}
                                                             </span>
                                                         </div>
 
 
-                                                        {/* Name */}
+                                                        {/* =============================
+                                    FIRST NAME
+                                ============================== */}
                                                         <div
-                                                            className="
-                                    text-[30px]
-                                    font-extrabold
-                                    leading-[1.35]
-                                    tracking-wide
-                                    text-[#071E3D]
-                                "
+                                                            className={`
+                                        w-full
+                                        truncate
+                                        px-2
+
+                                        font-black
+
+                                        tracking-[0.01em]
+
+                                        text-[#071E3D]
+
+                                        ${isSingleWinner
+                                                                    ? "text-[clamp(38px,4vw,54px)] "
+                                                                    : "text-[clamp(22px,2vw,30px)] "
+                                                                }
+                                    `}
                                                         >
-                                                            {first}
+                                                            {first} {isSingleWinner ? last : ""}
+                                                        </div>
 
-                                                            <br />
 
-                                                            {last}
+                                                        {/* =============================
+                                    LAST NAME
+                                ============================== */}
+                                                        <div
+                                                            className={`
+                                                                w-full
+                                                                truncate
+                                                                px-2
+
+                                                                font-black
+
+                                                                tracking-[0.01em]
+
+                                                                text-[#071E3D]
+
+                                                                    ${isSingleWinner
+                                                                    ? "mt-1 text-[clamp(38px,4vw,54px)] "
+                                                                    : "text-[clamp(22px,2vw,30px)] "
+                                                                }
+                                                                `}
+                                                        >
+                                                            {isSingleWinner ? "" : last}
                                                         </div>
 
                                                     </motion.div>
@@ -748,27 +884,30 @@ export default function Page() {
                                             </div>
 
 
-                                            {/* ==============================
-                    BOTTOM COLOR ACCENT
-                ============================== */}
+                                            {/* ========================================
+                        BOTTOM ACCENT
+                    ========================================= */}
                                             <div
                                                 className={`
-                        absolute
-                        bottom-0
-                        left-[10%]
-                        h-[4px]
-                        w-[80%]
-                        rounded-full
+                            absolute
 
-                        ${isSpinning
-                                                        ? "bg-sky-400"
-                                                        : i === 0
-                                                            ? "bg-emerald-400"
-                                                            : i === 1
-                                                                ? "bg-blue-400"
-                                                                : "bg-orange-400"
+                            bottom-0
+                            left-[7%]
+
+                            w-[86%]
+
+                            rounded-full
+
+                            ${isSingleWinner
+                                                        ? "h-[6px]"
+                                                        : "h-[4px]"
                                                     }
-                    `}
+
+                            ${isSpinning
+                                                        ? accent.spinningLine
+                                                        : accent.line
+                                                    }
+                        `}
                                             />
 
                                         </motion.div>
@@ -776,14 +915,23 @@ export default function Page() {
                                 })}
                             </div>
 
-                            {/* Controls */}
+                        </div>
 
+                        {/* Controls */}
+
+                        <div className="w-full max-w-6xl">
                             {
                                 reels.length > 0 && isSpinning == false ?
                                     <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
                                         <button
                                             disabled={isSpinning || !canDraw}
-                                            onClick={resetAll}
+                                            onClick={ () => {
+
+                                                stopAllIntervals();
+                                                setIsSpinning(false);
+                                                setReels([]);
+                                                // resetAll
+                                            }}
                                             className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
                                         >
                                             รีเซ็ต
@@ -791,17 +939,7 @@ export default function Page() {
                                         <button
                                             disabled={isSpinning || !canDraw}
                                             onClick={() => {
-                                                // saveMember
-                                                const selectedPrize = options.find(o => o.value === value);
-                                                if (!selectedPrize) return; // ✅ ทำให้ด้านล่างไม่เป็น undefined
-                                                const updatedReels: USERITEM[] = reels.map((u) => ({
-                                                    ...u,
-                                                    prize_id: selectedPrize?.value,
-                                                    prize_name: selectedPrize?.label,
-
-                                                }));
-                                                setWinners(prev => [...prev, ...updatedReels]);
-                                                setReels([]);
+                                                saveListWinners();
                                             }}
                                             className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
                                         >
@@ -812,6 +950,7 @@ export default function Page() {
 
                                     <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
                                         <button
+
                                             onClick={startDraw}
                                             disabled={isSpinning || !canDraw}
                                             className="
@@ -879,16 +1018,17 @@ export default function Page() {
 
                             }
 
-                            <div className="mt-3 text-center text-xs text-slate-500">
+                            {/* <div className="mt-3 text-center text-xs text-slate-500">
                                 โหลดสมาชิกทั้งหมด: <b >{users.length}</b> คน
                                 {loading ? <span className="ml-2">• กำลังโหลด…</span> : null}
                                 <span className="ml-2">• แถวละ {gridCols} กล่อง</span>
-                            </div>
+                            </div> */}
                         </div>
+
                     </div>
                 </div>
             </div>
-            <div className="flex-1 min-h-0 border-l-1 border-slate-200 ">
+            <div className="flex-1 min-h-0 ">
                 {/* =========================
     RIGHT WINNER PANEL
 ========================= */}
@@ -951,9 +1091,8 @@ export default function Page() {
                             [&::-webkit-scrollbar-thumb]:bg-slate-300
                         "
                     >
-                        <div className="space-y-2.5">
+                        <div className="space-y-2.5 overflow-y-auto max-h-full h-150">
                             {winners.map((u, i) => {
-
                                 /* สีลำดับ */
                                 const badgeColor =
                                     i === 0
@@ -1064,81 +1203,82 @@ export default function Page() {
                                 );
                             })}
                         </div>
+
+                        {winners.length > 0 && (
+                            <div
+                                className="
+                                border-t
+                                border-[#D9E5E8]
+                                pt-4
+                            "
+                            >
+                                <button
+                                    onClick={() => {
+                                        saveMember();
+                                    }}
+                                    className="
+                                    flex
+                                    w-full
+                                    items-center
+                                    justify-center
+                                    gap-2.5
+
+                                    rounded-[20px]
+                                    border
+                                    border-[#DCE7E9]
+
+                                    bg-white
+
+                                    px-5
+                                    py-3.5
+
+                                    text-[16px]
+                                    font-bold
+                                    text-[#123B59]
+
+                                    shadow-[0_5px_15px_rgba(0,45,70,0.09)]
+
+                                    transition-all
+                                    duration-200
+
+                                    hover:-translate-y-[1px]
+                                    hover:bg-[#F9FCFC]
+                                    hover:shadow-[0_8px_20px_rgba(0,45,70,0.14)]
+
+                                    active:scale-[0.98]
+                                "
+                                >
+                                    {/* Save icon */}
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        className="h-5 w-5"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M5 4h11l3 3v13H5V4Z"
+                                        />
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M8 4v6h8V4M8 16h8"
+                                        />
+                                    </svg>
+
+                                    บันทึกรายชื่อผู้โชคดี
+                                </button>
+                            </div>
+                        )}
                     </div>
 
 
                     {/* =========================
         BOTTOM SAVE BUTTON
     ========================= */}
-                    {winners.length > 0 && (
-                        <div
-                            className="
-                mt-4
-                border-t
-                border-[#D9E5E8]
-                pt-4
-            "
-                        >
-                            <button
-                                onClick={() => {
-                                    saveMember();
-                                }}
-                                className="
-                    flex
-                    w-full
-                    items-center
-                    justify-center
-                    gap-2.5
 
-                    rounded-[20px]
-                    border
-                    border-[#DCE7E9]
-
-                    bg-white
-
-                    px-5
-                    py-3.5
-
-                    text-[16px]
-                    font-bold
-                    text-[#123B59]
-
-                    shadow-[0_5px_15px_rgba(0,45,70,0.09)]
-
-                    transition-all
-                    duration-200
-
-                    hover:-translate-y-[1px]
-                    hover:bg-[#F9FCFC]
-                    hover:shadow-[0_8px_20px_rgba(0,45,70,0.14)]
-
-                    active:scale-[0.98]
-                "
-                            >
-                                {/* Save icon */}
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    className="h-5 w-5"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M5 4h11l3 3v13H5V4Z"
-                                    />
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M8 4v6h8V4M8 16h8"
-                                    />
-                                </svg>
-
-                                บันทึกรายชื่อผู้โชคดี
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

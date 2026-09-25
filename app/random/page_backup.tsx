@@ -281,6 +281,7 @@ export default function Page() {
             const mapped: DropdownOption<DropdownValue>[] = list.map((d) => ({
                 value: d.prize_id,
                 label: d.prize_name,
+                desc : d.prize_desc
             }));
             setOptions(mapped);
 

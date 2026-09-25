@@ -5,7 +5,7 @@ export const runtime = "nodejs"; // ให้ชัดว่าใช้ Node ru
 export async function GET() {
     try {
         const [rows] = await pool.query(
-            `select prize_id ,prize_name  from prizes`
+            `select prize_id ,prize_name,prize_desc  from prizes order by prize_id asc`
         );
 
         return NextResponse.json(
