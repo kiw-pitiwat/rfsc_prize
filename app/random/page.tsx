@@ -42,7 +42,7 @@ function pickUniqueUsersByMemberNo(list: USERITEM[], k: number): USERITEM[] {
 }
 
 function fireConfetti(): void {
-    const end = Date.now() + 1000;
+    const end = Date.now() + 600;
 
     const tick = () => {
         confetti({
@@ -227,7 +227,7 @@ export default function Page() {
                         // setHistoryNos((h) => [...h, ...picked.map((x) => x.MEMBER_NO)]);
                         setIsSpinning(false);
                         fireConfetti();
-                    }, 2000);
+                    }, 1000);
                 }
             }, stopAfter);
         }
@@ -600,7 +600,7 @@ export default function Page() {
                                             >
 
                                                 {/* ลำดับ */}
-                                                {/* <div
+                                                {reels.length > 1 ? (   <div
                                                     className={`
                                 rounded-full
 
@@ -617,8 +617,9 @@ export default function Page() {
                                                         }
                             `}
                                                 >
-                                                    ลำดับ {i + 1}
-                                                </div> */}
+                                                    ลำดับที่ {i + 1}
+                                                </div>) : null
+                                                }
 
 
                                                 {/* ปุ่ม X */}
